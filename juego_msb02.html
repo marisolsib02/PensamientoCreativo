@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poderes Elementales</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(7, 60px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .tile {
+      width: 60px;
+      height: 60px;
+      line-height: 60px;
+      border-radius: 10px;
+      font-weight: bold;
+      color: #fff;
+      position: relative;
+    }
+    .fire { background: #e74c3c; }
+    .water { background: #3498db; }
+    .air { background: #f1c40f; color: #000; }
+    .earth { background: #2ecc71; }
+    .tormenta { background: #7f8c8d; }
+    .viento { background: #95a5a6; }
+    .escalera { border: 2px dashed #000; }
+    .player {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      position: absolute;
+      border: 2px solid #fff;
+    }
+    #controls {
+      margin-top: 20px;
+    }
+    #diceBtn {
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+    #cards {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .card {
+      padding: 10px;
+      border-radius: 8px;
+      color: #fff;
+      width: 100px;
+    }
+    .card.fire { background: #e74c3c; }
+    .card.water { background: #3498db; }
+    .card.air { background: #f1c40f; color: #000; }
+    .card.earth { background: #2ecc71; }
+    #playerInfo {
+      margin-top: 20px;
+    }
+    .playerStat {
+      margin: 5px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Poderes Elementales</h1>
+
+  <div>
+    <label for="numPlayers">Selecciona número de jugadores (2-7): </label>
+    <input type="number" id="numPlayers" min="2" max="7" value="2">
+    <button onclick="startGame()">Iniciar Juego</button>
+  </div>
+
+  <div id="board"></div>
+  <div id="controls" style="display:none;">
+    <p id="turnInfo">Turno del Jugador 1</p>
+    <button id="diceBtn">Lanzar dado 🎲</button>
+    <p id="diceResult"></p>
+  </div>
+  <div id="cards">
+    <div class="card fire">Fuego 🔥</div>
+    <div class="card water">Agua 💧</div>
+    <div class="card air">Aire 🌬</div>
+    <div class="card earth">Tierra 🌱</div>
+  </div>
+  <div id="playerInfo"></div>
+
+  <script>
+    const NUM_TILES = 41;
+    const board = document.getElementById('board');
+    const diceBtn = document.getElementById('diceBtn');
+    const diceResult = document.getElementById('diceResult');
+    const turnInfo = document.getElementById('turnInfo');
+    const playerInfo = document.getElementById('playerInfo');
+
+    const colors = ['red', 'blue', 'green', 'orange', 'purple', 'cyan', 'pink'];
+    let players = [];
+    let currentPlayer = 0;
+
+    const types = ['fire', 'water', 'air', 'earth'];
+
+    const escaleras = {
+      5: 15,
+      12: 22,
+      18: 30
+    };
+
+    function createBoard() {
+      board.innerHTML = '';
+      for (let i = 1; i <= NUM_TILES; i++) {
+        const tile = document.createElement('div');
+        let tileType;
+        if (i % 10 === 0) {
+          tileType = 'tormenta';
+        } else if (i % 6 === 0) {
+          tileType = 'viento';
+        } else {
+          tileType = types[i % 4];
+        }
+        if (escaleras[i]) {
+          tile.className = `tile ${tileType} escalera`;
+        } else {
+          tile.className = `tile ${tileType}`;
+        }
+        tile.dataset.index = i;
+        tile.textContent = i;
+        board.appendChild(tile);
+      }
+    }
+
+    function updatePlayers() {
+      document.querySelectorAll('.player').forEach(el => el.remove());
+      players.forEach((p, idx) => {
+        if (p.position === 0) return;
+        const tile = board.children[p.position - 1];
+        const token = document.createElement('div');
+        token.className = 'player';
+        token.style.backgroundColor = p.color;
+        token.style.left = `${idx * 17}px`;
+        token.style.bottom = '5px';
+        tile.appendChild(token);
+      });
+      updatePlayerInfo();
+    }
+
+    function updatePlayerInfo() {
+      playerInfo.innerHTML = '';
+      players.forEach((p, i) => {
+        const stat = document.createElement('div');
+        stat.className = 'playerStat';
+        stat.innerHTML = `<span style="color:${p.color}; font-weight:bold;">Jugador ${i + 1}</span>: Casilla ${p.position}`;
+        playerInfo.appendChild(stat);
+      });
+    }
+
+    function rollDice() {
+      return Math.floor(Math.random() * 6) + 1;
+    }
+
+    function startGame() {
+      const numPlayers = parseInt(document.getElementById('numPlayers').value);
+      if (numPlayers < 2 || numPlayers > 7) {
+        alert('Selecciona entre 2 y 7 jugadores.');
+        return;
+      }
+      players = [];
+      for (let i = 0; i < numPlayers; i++) {
+        players.push({ color: colors[i], position: 0 });
+      }
+      currentPlayer = 0;
+      createBoard();
+      updatePlayers();
+      document.getElementById('controls').style.display = 'block';
+      turnInfo.textContent = `Turno del Jugador ${currentPlayer + 1}`;
+    }
+
+    diceBtn.addEventListener('click', () => {
+      const roll = rollDice();
+      diceResult.textContent = `Obtuviste: ${roll}`;
+      let player = players[currentPlayer];
+      player.position += roll;
+      if (escaleras[player.position]) {
+        alert(`¡Escalera! Subes de ${player.position} a ${escaleras[player.position]}`);
+        player.position = escaleras[player.position];
+      }
+      if (player.position >= NUM_TILES) {
+        player.position = NUM_TILES;
+        updatePlayers();
+        alert(`¡Jugador ${currentPlayer + 1} ha ganado! 🏆`);
+        diceBtn.disabled = true;
+        return;
+      }
+
+      const tileType = board.children[player.position - 1].classList[1];
+
+      if (tileType === 'tormenta') {
+        alert('¡Caíste en Tormenta! Pierdes el siguiente turno.');
+        currentPlayer = (currentPlayer + 2) % players.length;
+      } else if (tileType === 'viento') {
+        alert('¡Viento! Avanzas 2 casillas.');
+        player.position = Math.min(player.position + 2, NUM_TILES);
+        currentPlayer = (currentPlayer + 1) % players.length;
+      } else {
+        currentPlayer = (currentPlayer + 1) % players.length;
+      }
+
+      updatePlayers();
+      turnInfo.textContent = `Turno del Jugador ${currentPlayer + 1}`;
+    });
+  </script>
+</body>
+</html>
